@@ -48,6 +48,9 @@ nav input[type=text]{border:1.5px solid #d1d5db;border-radius:10px;padding:8px 1
 
 /* ---- scène ---- */
 #stage{position:relative;flex:1;min-height:0;background:var(--bg);overflow:hidden;touch-action:none}
+#scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
+#scroller::-webkit-scrollbar{display:none}
+#sheet{position:relative;width:100%;height:100%}
 canvas{position:absolute;left:0;top:0;touch-action:none}
 #layer{position:absolute;inset:0;pointer-events:none;touch-action:none}
 #tools{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;display:flex;gap:6px;align-items:center;
@@ -106,9 +109,11 @@ body.min #restore{display:block}
   <div class="row" id="params"></div>
 </nav>
 <main id="stage">
-  <canvas id="bg"></canvas>
-  <canvas id="ink"></canvas>
-  <div id="layer"></div>
+  <div id="scroller"><div id="sheet">
+    <canvas id="bg"></canvas>
+    <canvas id="ink"></canvas>
+    <div id="layer"></div>
+  </div></div>
   <div id="tools"></div>
 </main>
 <button id="restore" title="Afficher les menus">👁</button>
@@ -177,14 +182,15 @@ const T=()=>THEMES[cfg.theme]||THEMES.blanc;
    ========================================================= */
 const stage=$('#stage'),bg=$('#bg'),ink=$('#ink'),layer=$('#layer'),toolsEl=$('#tools');
 const bgx=bg.getContext('2d'),inkx=ink.getContext('2d');
-let W=0,H=0,DPR=1;
+let W=0,H=0,SH=0,DPR=1,EXTRA=0;const EXTRA_PX=130,sc=$('#scroller'),sheet=$('#sheet');
 let strokes=[],lastCleared=null,erase=false,penSeen=false,cur=null,curId=null,drawing=false,guide=null;
 const COLORS=['auto','#1e63ff','#e5352b','#17a34a','#f59e0b','#8b5cf6'];
 const penColor=()=>cfg.color==='auto'?T().fg:cfg.color;
 
 function fit(){
-  const r=stage.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);DPR=Math.min(window.devicePixelRatio||1,2.5);
-  for(const c of [bg,ink]){c.width=Math.max(1,W*DPR);c.height=Math.max(1,H*DPR);c.style.width=W+'px';c.style.height=H+'px'}
+  const r=stage.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);SH=H+EXTRA;DPR=Math.min(window.devicePixelRatio||1,2.5);
+  sheet.style.height=SH+'px';
+  for(const c of [bg,ink]){c.width=Math.max(1,W*DPR);c.height=Math.max(1,SH*DPR);c.style.width=W+'px';c.style.height=SH+'px'}
   bgx.setTransform(DPR,0,0,DPR,0,0);inkx.setTransform(DPR,0,0,DPR,0,0);
 }
 function styleFor(c,s){c.lineCap='round';c.lineJoin='round';c.lineWidth=s.w;
@@ -195,7 +201,7 @@ function drawStroke(s){const p=s.pts;styleFor(inkx,s);
   inkx.beginPath();inkx.moveTo(p[0].x,p[0].y);
   for(let i=1;i<p.length-1;i++){const mx=(p[i].x+p[i+1].x)/2,my=(p[i].y+p[i+1].y)/2;inkx.quadraticCurveTo(p[i].x,p[i].y,mx,my)}
   inkx.lineTo(p[p.length-1].x,p[p.length-1].y);inkx.stroke()}
-function redrawInk(){inkx.save();inkx.setTransform(DPR,0,0,DPR,0,0);inkx.globalCompositeOperation='source-over';inkx.clearRect(0,0,W,H);strokes.forEach(drawStroke);inkx.restore()}
+function redrawInk(){inkx.save();inkx.setTransform(DPR,0,0,DPR,0,0);inkx.globalCompositeOperation='source-over';inkx.clearRect(0,0,W,SH);strokes.forEach(drawStroke);inkx.restore()}
 function clearInk(){if(strokes.length){lastCleared=strokes;strokes=[];redrawInk()}}
 function undo(){if(strokes.length){strokes.pop();redrawInk()}else if(lastCleared){strokes=lastCleared;lastCleared=null;redrawInk()}}
 
@@ -219,6 +225,15 @@ ink.addEventListener('pointerup',endStroke);ink.addEventListener('pointercancel'
 ink.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('contextmenu',e=>{if(e.target.tagName!=='INPUT')e.preventDefault()});
+
+/* ---- défilement à deux doigts ---- */
+let pan=null;
+sc.addEventListener('touchstart',e=>{if(e.touches.length===2){
+  pan={y:(e.touches[0].clientY+e.touches[1].clientY)/2,top:sc.scrollTop};
+  if(cur){strokes.pop();redrawInk();cur=null;curId=null}}},{passive:true});
+sc.addEventListener('touchmove',e=>{if(pan&&e.touches.length>=2){e.preventDefault();
+  sc.scrollTop=pan.top-((e.touches[0].clientY+e.touches[1].clientY)/2-pan.y)}},{passive:false});
+sc.addEventListener('touchend',e=>{if(e.touches.length<2)pan=null});
 
 /* ---- score de précision ---- */
 function resample(poly,step,out){
@@ -253,6 +268,7 @@ const tb={};
     b.onclick=()=>{cfg.thick=w;erase=false;save();refreshTools()};toolsEl.append(b)});
   toolsEl.append(el('div',{class:'sep'}));
   const add=(id,txt,title,fn)=>{const b=el('button',{class:'tb',title},txt);b.onclick=fn;tb[id]=b;toolsEl.append(b)};
+  add('scroll','⇅','Faire défiler la feuille (haut / bas)',()=>{const max=sc.scrollHeight-sc.clientHeight;sc.scrollTo({top:sc.scrollTop>max/2?0:max,behavior:'smooth'})});
   add('erase','🧽','Gomme',()=>{erase=!erase;refreshTools()});
   add('undo','↩︎','Annuler',undo);
   add('clear','🗑','Tout effacer',clearInk);
@@ -263,7 +279,7 @@ const tb={};
 function refreshTools(){
   toolsEl.querySelectorAll('.col').forEach(b=>b.classList.toggle('on',!erase&&b.dataset.c===cfg.color));
   toolsEl.querySelectorAll('.th').forEach(b=>b.classList.toggle('on',!erase&&+b.dataset.w===cfg.thick));
-  tb.erase.classList.toggle('on',erase);tb.palm.classList.toggle('on',cfg.palm);tb.score.hidden=!guide;
+  tb.erase.classList.toggle('on',erase);tb.palm.classList.toggle('on',cfg.palm);tb.score.hidden=!guide;tb.scroll.hidden=!EXTRA;
 }
 function saveImg(){
   const c=document.createElement('canvas');c.width=bg.width;c.height=bg.height;const x=c.getContext('2d');
@@ -611,7 +627,9 @@ const curAct=()=>{const l=ACTS[cfg.mode];return l.find(a=>a.id===cfg.acts[cfg.mo
 let cleaners=[];const onClean=f=>cleaners.push(f);
 function build(keep){
   cleaners.forEach(f=>{try{f()}catch(e){}});cleaners=[];
-  layer.innerHTML='';layer.style.pointerEvents='none';bgx.setTransform(DPR,0,0,DPR,0,0);bgx.clearRect(0,0,W,H);guide=null;
+  const ex=curAct().draw?EXTRA_PX:0;if(ex!==EXTRA){EXTRA=ex;fit()}
+  if(!keep)sc.scrollTop=0;
+  layer.innerHTML='';layer.style.pointerEvents='none';bgx.setTransform(DPR,0,0,DPR,0,0);bgx.clearRect(0,0,W,SH);guide=null;
   const th=T(),rs=document.documentElement.style;
   rs.setProperty('--bg',th.bg);rs.setProperty('--fg',th.fg);rs.setProperty('--soft',th.soft);rs.setProperty('--guide',th.guide);rs.setProperty('--hudbg',th.hud);
   const a=curAct();drawing=!!a.draw;ink.style.pointerEvents=drawing?'auto':'none';toolsEl.hidden=!drawing;
