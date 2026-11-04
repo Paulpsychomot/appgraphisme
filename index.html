@@ -97,7 +97,11 @@ body.min #restore{display:block}
 .mpanel{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--fg);font:700 16px system-ui}
 .mgrid{display:grid;gap:3px;padding:6px;border-radius:10px;background:var(--soft)}
 .mc{border:0;padding:0;border-radius:6px;background:var(--bg);pointer-events:auto;touch-action:manipulation}
+.mc{display:flex;align-items:center;justify-content:center}
 .mc.bad{outline:5px solid #ef4444;outline-offset:-3px}
+.mc.good{outline:5px solid #16a34a;outline-offset:-3px}
+.mc.miss{outline:5px dashed #f59e0b;outline-offset:-3px}
+.mc .hint{display:block;width:42%;height:42%;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
 .mpanel.mask .mgrid{visibility:hidden}
 .pal{width:44px;height:44px;border-radius:50%;border:3px solid transparent;pointer-events:auto;padding:0;flex:none}
 .pal.on{border-color:var(--fg);box-shadow:0 0 0 3px var(--accent)}
@@ -227,8 +231,8 @@ function drawStroke(s){const p=s.pts;styleFor(inkx,s);
   for(let i=1;i<p.length-1;i++){const mx=(p[i].x+p[i+1].x)/2,my=(p[i].y+p[i+1].y)/2;inkx.quadraticCurveTo(p[i].x,p[i].y,mx,my)}
   inkx.lineTo(p[p.length-1].x,p[p.length-1].y);inkx.stroke()}
 function redrawInk(){inkx.save();inkx.setTransform(DPR,0,0,DPR,0,0);inkx.globalCompositeOperation='source-over';inkx.clearRect(0,0,W,SH);strokes.forEach(drawStroke);inkx.restore()}
-function clearInk(){if(strokes.length){lastCleared=strokes;strokes=[];redrawInk()}}
-function undo(){if(strokes.length){strokes.pop();redrawInk()}else if(lastCleared){strokes=lastCleared;lastCleared=null;redrawInk()}}
+function clearInk(){clearOverlay();if(strokes.length){lastCleared=strokes;strokes=[];redrawInk()}}
+function undo(){clearOverlay();if(strokes.length){strokes.pop();redrawInk()}else if(lastCleared){strokes=lastCleared;lastCleared=null;redrawInk()}}
 
 function pt(e){const r=ink.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 ink.addEventListener('pointerdown',e=>{
@@ -236,6 +240,7 @@ ink.addEventListener('pointerdown',e=>{
   if(e.pointerType==='pen')penSeen=true;
   if(e.pointerType==='touch'&&cfg.palm&&penSeen)return;
   if(curId!==null)return;
+  clearOverlay();
   e.preventDefault();curId=e.pointerId;try{ink.setPointerCapture(e.pointerId)}catch(_){}
   cur={pts:[pt(e)],color:penColor(),w:erase?Math.max(cfg.thick*3,34):cfg.thick,erase};
   strokes.push(cur);drawStroke(cur);
@@ -259,6 +264,13 @@ sc.addEventListener('touchstart',e=>{if(e.touches.length===2){
 sc.addEventListener('touchmove',e=>{if(pan&&e.touches.length>=2){e.preventDefault();
   sc.scrollTop=pan.top-((e.touches[0].clientY+e.touches[1].clientY)/2-pan.y)}},{passive:false});
 sc.addEventListener('touchend',e=>{if(e.touches.length<2)pan=null});
+
+/* ---- calque de correction (au-dessus du dessin) ---- */
+let overlayEl=null;
+function clearOverlay(){if(overlayEl){overlayEl.remove();overlayEl=null}}
+function makeOverlay(){clearOverlay();const c=document.createElement('canvas');c.width=W*DPR;c.height=SH*DPR;
+  c.style.cssText=`position:absolute;left:0;top:0;width:${W}px;height:${SH}px;pointer-events:none`;layer.append(c);overlayEl=c;
+  const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);return x}
 
 /* ---- score de précision ---- */
 function resample(poly,step,out){
@@ -297,6 +309,7 @@ const tb={};
   add('erase','🧽','Gomme',()=>{erase=!erase;refreshTools()});
   add('undo','↩︎','Annuler',undo);
   add('clear','🗑','Tout effacer',clearInk);
+  add('check','✅','Corriger (vrai / faux)',()=>guide&&guide.check&&guide.check());
   add('score','🎯','Précision',score);
   add('palm','✋','Stylet seul (rejet de la paume)',()=>{cfg.palm=!cfg.palm;save();refreshTools();toast(cfg.palm?'Stylet seul : le doigt est ignoré<br><small>(après le 1er trait au stylet)</small>':'Doigt et stylet autorisés')});
   add('save','💾','Enregistrer en image',saveImg);
@@ -304,7 +317,7 @@ const tb={};
 function refreshTools(){
   toolsEl.querySelectorAll('.col').forEach(b=>b.classList.toggle('on',!erase&&b.dataset.c===cfg.color));
   toolsEl.querySelectorAll('.th').forEach(b=>b.classList.toggle('on',!erase&&+b.dataset.w===cfg.thick));
-  tb.erase.classList.toggle('on',erase);tb.palm.classList.toggle('on',cfg.palm);tb.score.hidden=!guide;tb.scroll.hidden=!EXTRA;
+  tb.erase.classList.toggle('on',erase);tb.palm.classList.toggle('on',cfg.palm);tb.score.hidden=!guide;tb.check.hidden=!(guide&&guide.check);tb.scroll.hidden=!EXTRA;
 }
 function saveImg(){
   const c=document.createElement('canvas');c.width=bg.width;c.height=bg.height;const x=c.getContext('2d');
@@ -660,19 +673,24 @@ function startMosaic(){
   pals[0].classList.add('on');
   const mk=(txt)=>{const g=el('div',{class:'mgrid'});g.style.gridTemplateColumns=`repeat(${n},${sz}px)`;g.style.gridTemplateRows=`repeat(${n},${sz}px)`;return g};
   const mg=mk(),wg=mk(),cellsW=[];
+  const resetMarks=b=>{b.classList.remove('bad','good','miss');const h=b.querySelector('.hint');if(h)h.remove()};
   for(let r=0;r<n;r++)for(let c=0;c<n;c++){const m=el('div',{class:'mc'});m.style.background=cols[model[r][c]];mg.append(m)}
   for(let r=0;r<n;r++)for(let c=0;c<n;c++){const b=el('button',{class:'mc'});cellsW.push(b);
-    b.onclick=()=>{work[r][c]=work[r][c]===sel?-1:sel;b.style.background=work[r][c]<0?'':cols[work[r][c]];b.classList.remove('bad')};wg.append(b)}
+    b.onclick=()=>{work[r][c]=work[r][c]===sel?-1:sel;b.style.background=work[r][c]<0?'':cols[work[r][c]];resetMarks(b)};wg.append(b)}
   const mp=el('div',{class:'mpanel'},'Modèle',mg),wp=el('div',{class:'mpanel'},'À toi !',wg);
   layer.append(el('div',{class:'mosaic',style:`flex-direction:${land?'row':'column'}`},mp,wp));
-  const check=el('button',{class:'sm'},'✔ Vérifier');
-  check.onclick=()=>{let bad=0;
-    for(let r=0;r<n;r++)for(let c=0;c<n;c++){const wr=work[r][c]!==model[r][c];if(wr)bad++;cellsW[r*n+c].classList.toggle('bad',wr&&work[r][c]>=0)}
-    if(!bad)layer.append(el('div',{class:'bravo'},'Bravo ! 🎉',el('button',{onclick:newSeed},'Nouvelle mosaïque')));
-    else toast(`${bad} case${bad>1?'s':''} à corriger`)};
+  const check=el('button',{class:'sm'},'✔ Corriger');
+  check.onclick=()=>{let good=0,wrong=0,empty=0;
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++){const b=cellsW[r*n+c],w=work[r][c],m=model[r][c];resetMarks(b);
+      if(w===m){good++;b.classList.add('good')}else if(w<0){empty++;b.classList.add('miss')}else{wrong++;b.classList.add('bad')}}
+    if(good===n*n)layer.append(el('div',{class:'bravo'},'Bravo ! 🎉',el('div',{style:'font-size:22px;font-weight:600;margin-top:6px'},'Mosaïque parfaite'),el('button',{onclick:newSeed},'Nouvelle mosaïque')));
+    else toast(`✅ ${good} juste${good>1?'s':''} · ❌ ${wrong} fausse${wrong>1?'s':''} · ⬜ ${empty} vide${empty>1?'s':''}<br><small>sur ${n*n} cases</small>`)};
+  const sol=el('button',{class:'sm'},'💡 Solution');
+  sol.onclick=()=>{for(let r=0;r<n;r++)for(let c=0;c<n;c++){const b=cellsW[r*n+c],h=b.querySelector('.hint');
+    if(work[r][c]!==model[r][c]){if(!h){const sp=el('span',{class:'hint'});sp.style.background=cols[model[r][c]];b.append(sp)}}else if(h)h.remove()}};
   const clear=el('button',{class:'sm'},'↺ Vider');
-  clear.onclick=()=>{for(let r=0;r<n;r++)for(let c=0;c<n;c++){work[r][c]=-1;const b=cellsW[r*n+c];b.style.background='';b.classList.remove('bad')}};
-  hud.append(check,clear);
+  clear.onclick=()=>{for(let r=0;r<n;r++)for(let c=0;c<n;c++){work[r][c]=-1;const b=cellsW[r*n+c];b.style.background='';resetMarks(b)}};
+  hud.append(check,sol,clear);
   if(cfg.mo_mem){
     const eye=el('button',{class:'sm'},'👁 Revoir');eye.onclick=()=>mp.classList.toggle('mask');hud.append(eye);
     const tm=setTimeout(()=>mp.classList.add('mask'),4000+n*n*150);onClean(()=>clearTimeout(tm));
@@ -736,7 +754,26 @@ function startPModel(){
     for(let i=0;i<n;i++)for(let j=0;j<n;j++){const q=pos([i,j]);bgx.beginPath();bgx.arc(q[0],q[1],Math.max(4,Math.min(9,pitch*.08)),0,7);bgx.fill()}
     bgx.restore();
   });
-  guide={polys:model.map(pl=>pl.map(pos2)),tol:Math.max(14,pitch*.3)};
+  const segs=[];model.forEach(pl=>{for(let i=1;i<pl.length;i++)segs.push([pos2(pl[i-1]),pos2(pl[i])])});
+  const tol=Math.max(14,pitch*.3);
+  guide={polys:model.map(pl=>pl.map(pos2)),tol,check:()=>{
+    const I=[];strokes.filter(s=>!s.erase).forEach(s=>resample(s.pts.map(p=>[p.x,p.y]),4,I));
+    if(!I.length){toast('Trace d’abord quelque chose 🙂');return}
+    const hI=makeHash(I,tol),G=[];
+    const st=segs.map(sg=>{const P=[];resample([sg[0],sg[1]],4,P);P.push(sg[1]);G.push(...P);
+      const cov=P.filter(p=>near(hI,p,tol)).length/P.length;return cov>=.85?2:cov>=.4?1:0});
+    const hG=makeHash(G,tol*1.3),extra=I.filter(p=>!near(hG,p,tol*1.3));
+    const ok=st.filter(v=>v===2).length,miss=st.filter(v=>v===0).length,part=st.length-ok-miss,over=extra.length/I.length>.1;
+    const x=makeOverlay();x.lineCap='round';
+    segs.forEach((sg,i)=>{x.beginPath();x.moveTo(sg[0][0],sg[0][1]);x.lineTo(sg[1][0],sg[1][1]);
+      if(st[i]===2){x.strokeStyle='rgba(22,163,74,.45)';x.lineWidth=tol*1.6;x.setLineDash([])}
+      else{x.strokeStyle=st[i]?'#f59e0b':'#ef4444';x.lineWidth=7;x.setLineDash([12,10])}
+      x.stroke()});
+    if(over){x.fillStyle='rgba(239,68,68,.6)';extra.forEach((p,i)=>{if(i%3===0){x.beginPath();x.arc(p[0],p[1],5,0,7);x.fill()}})}
+    if(ok===st.length&&!over)toast('Bravo ! Figure réussie 🎉');
+    else toast(`✅ ${ok} trait${ok>1?'s':''} juste${ok>1?'s':''} sur ${st.length}`+(part?` · 🟠 ${part} à finir`:'')+(miss?` · ❌ ${miss} manquant${miss>1?'s':''}`:'')+(over?' · ⚠️ trait en trop':''));
+  }};
+  refreshTools();
 }
 
 
