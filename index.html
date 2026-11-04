@@ -87,6 +87,11 @@ body.min #restore{display:block}
 .cell.sq{border:3px solid var(--guide);border-radius:12px;margin:3px;background:var(--hudbg)}
 .cell.sq.pointed{background:rgba(229,53,43,.12)}
 .cell.sq.pointed::before{content:'';width:46%;height:46%;border-radius:50%;background:#e5352b}
+.tw{position:absolute;border-radius:50%;border:6px solid rgba(255,255,255,.9);box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none;transition:transform .12s;--p:0}
+.tw.held{transform:scale(1.12);box-shadow:0 0 0 8px rgba(0,0,0,.18),0 4px 14px rgba(0,0,0,.35)}
+.tw::after{content:'';position:absolute;inset:-18px;border-radius:50%;background:conic-gradient(var(--fg) calc(var(--p)*360deg),transparent 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 9px),#000 calc(100% - 8px));mask:radial-gradient(farthest-side,transparent calc(100% - 9px),#000 calc(100% - 8px))}
+.tw .tag{position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);background:var(--hudbg);color:var(--fg);padding:3px 10px;border-radius:999px;font:700 17px system-ui;white-space:nowrap}
 .cell.next::after{content:'';position:absolute;inset:4%;border:5px solid var(--accent);border-radius:50%}
 .mosaic{position:absolute;left:0;right:0;top:84px;bottom:0;display:flex;align-items:center;justify-content:center;gap:28px;padding:8px 16px;pointer-events:none}
 .mpanel{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--fg);font:700 16px system-ui}
@@ -162,7 +167,8 @@ const DEF={mode:'oeil',acts:{oeil:'chemins',pre:'serie',grapho:'lettres',visu:'b
   gtext:'a o c d g q',gfont:'script',gmode:'trace',grows:2,gstyle:'grey',
   vset:'formes',vgrid:1,vcount:6,vsim:true,ilevel:1,igrid:1,lcount:5,lcurve:2,
   pt_mode:'schulte',pt_grid:1,pt_ord:false,mo_grid:4,mo_col:3,mo_type:'motif',mo_mem:false,best:{},
-  pm_type:'figure',pm_grid:5,pm_seg:5,pm_close:false};
+  pm_type:'figure',pm_grid:5,pm_seg:5,pm_close:false,
+  tw_hand:'une',tw_n:3,tw_hold:1,tw_spread:1,tw_size:120,tw_finger:false,tw_strict:false};
 let cfg=JSON.parse(JSON.stringify(DEF));
 try{const s=JSON.parse(localStorage.getItem('atelier-visuo')||'{}');Object.assign(cfg,s);cfg.acts=Object.assign({},DEF.acts,s.acts||{})}catch(e){}
 const save=()=>{try{localStorage.setItem('atelier-visuo',JSON.stringify(cfg))}catch(e){}};
@@ -171,19 +177,19 @@ const save=()=>{try{localStorage.setItem('atelier-visuo',JSON.stringify(cfg))}ca
 const LEVELS={
  CP:{chemin:'vague',piste:120,lab:6,pts:'etoile',npts:8,sym:'num',cmode:'unique',csize:150,ncib:5,timeout:0,pursuit:'h',speed:3,
      motif:'vert',rows:2,usize:3,pmode:'trace',pstyle:'dots',gtext:'a o c d',gfont:'script',gmode:'trace',grows:2,gstyle:'grey',
-     vset:'formes',vgrid:0,vcount:3,vsim:false,ilevel:0,igrid:0,lcount:3,lcurve:1,pt_mode:'schulte',pt_grid:0,mo_grid:3,mo_col:2,mo_type:'motif',pm_type:'droit',pm_grid:3,pm_seg:3,pm_close:false},
+     vset:'formes',vgrid:0,vcount:3,vsim:false,ilevel:0,igrid:0,lcount:3,lcurve:1,pt_mode:'schulte',pt_grid:0,mo_grid:3,mo_col:2,mo_type:'motif',pm_type:'droit',pm_grid:3,pm_seg:3,pm_close:false,tw_hand:'une',tw_n:2,tw_hold:1,tw_spread:0,tw_size:150,tw_finger:false,tw_strict:false},
  CE1:{chemin:'zigzag',piste:90,lab:6,pts:'maison',npts:12,sym:'num',cmode:'unique',csize:120,ncib:8,timeout:0,pursuit:'liss',speed:4,
      motif:'ponts',rows:3,usize:2,pmode:'trace',pstyle:'dots',gtext:'le cheval mange',gfont:'cursive',gmode:'trace',grows:2,gstyle:'dots',
-     vset:'formes',vgrid:1,vcount:5,vsim:true,ilevel:1,igrid:1,lcount:4,lcurve:1,pt_mode:'schulte',pt_grid:1,mo_grid:4,mo_col:3,mo_type:'motif',pm_type:'droit',pm_grid:4,pm_seg:4,pm_close:false},
+     vset:'formes',vgrid:1,vcount:5,vsim:true,ilevel:1,igrid:1,lcount:4,lcurve:1,pt_mode:'schulte',pt_grid:1,mo_grid:4,mo_col:3,mo_type:'motif',pm_type:'droit',pm_grid:4,pm_seg:4,pm_close:false,tw_hand:'une',tw_n:3,tw_hold:1,tw_spread:1,tw_size:130,tw_finger:false,tw_strict:false},
  CE2:{chemin:'boucles',piste:70,lab:10,pts:'coeur',npts:16,sym:'let',cmode:'ordre',csize:100,ncib:12,timeout:0,pursuit:'huit',speed:5,
      motif:'boucles',rows:4,usize:1,pmode:'copy',pstyle:'dots',gtext:'la rose pousse sur le rocher',gfont:'cursive',gmode:'copy',grows:3,gstyle:'outline',
-     vset:'lettres',vgrid:2,vcount:7,vsim:true,ilevel:1,igrid:2,lcount:5,lcurve:2,pt_mode:'schulte',pt_grid:2,mo_grid:5,mo_col:3,mo_type:'sym',pm_type:'figure',pm_grid:5,pm_seg:5,pm_close:false},
+     vset:'lettres',vgrid:2,vcount:7,vsim:true,ilevel:1,igrid:2,lcount:5,lcurve:2,pt_mode:'schulte',pt_grid:2,mo_grid:5,mo_col:3,mo_type:'sym',pm_type:'figure',pm_grid:5,pm_seg:5,pm_close:false,tw_hand:'une',tw_n:4,tw_hold:2,tw_spread:1,tw_size:120,tw_finger:true,tw_strict:false},
  CM1:{chemin:'montagne',piste:50,lab:16,pts:'hasard',npts:20,sym:'alt',cmode:'ordre',csize:80,ncib:16,timeout:3,pursuit:'alea',speed:7,
      motif:'cren',rows:5,usize:1,pmode:'copy',pstyle:'dots',gtext:'un grand cheval blanc galope sur la plage',gfont:'cursive',gmode:'copy',grows:4,gstyle:'outline',
-     vset:'lettres',vgrid:2,vcount:10,vsim:true,ilevel:2,igrid:3,lcount:7,lcurve:2,pt_mode:'couleur',pt_grid:2,mo_grid:6,mo_col:4,mo_type:'sym',pm_type:'oblique',pm_grid:6,pm_seg:7,pm_close:true},
+     vset:'lettres',vgrid:2,vcount:10,vsim:true,ilevel:2,igrid:3,lcount:7,lcurve:2,pt_mode:'couleur',pt_grid:2,mo_grid:6,mo_col:4,mo_type:'sym',pm_type:'oblique',pm_grid:6,pm_seg:7,pm_close:true,tw_hand:'deux',tw_n:2,tw_hold:2,tw_spread:1,tw_size:110,tw_finger:true,tw_strict:false},
  CM2:{chemin:'circuit',piste:36,lab:24,pts:'hasard',npts:26,sym:'alt',cmode:'ordre',csize:60,ncib:22,timeout:2,pursuit:'alea',speed:9,
      motif:'vagues',rows:6,usize:0,pmode:'copy',pstyle:'dots',gtext:'la grande vague gronde sous le grand rocher',gfont:'cursive',gmode:'copy',grows:5,gstyle:'outline',
-     vset:'chiffres',vgrid:3,vcount:14,vsim:true,ilevel:2,igrid:4,lcount:9,lcurve:3,pt_mode:'couleur',pt_grid:3,mo_grid:8,mo_col:5,mo_type:'hasard',pm_type:'oblique',pm_grid:8,pm_seg:10,pm_close:true}
+     vset:'chiffres',vgrid:3,vcount:14,vsim:true,ilevel:2,igrid:4,lcount:9,lcurve:3,pt_mode:'couleur',pt_grid:3,mo_grid:8,mo_col:5,mo_type:'hasard',pm_type:'oblique',pm_grid:8,pm_seg:10,pm_close:true,tw_hand:'deux',tw_n:3,tw_hold:3,tw_spread:2,tw_size:100,tw_finger:true,tw_strict:true}
 };
 const PHRASES={"CP": ["la lune", "un loup", "le cheval", "la mule", "un lama", "la rue", "le coq", "une poule", "un nez", "le sol"], "CE1": ["le cheval mange", "un gros loup", "la poule pond", "le loup mord", "une mule brune", "elle ramasse une pomme", "un cheval blanc", "la vague roule", "un ours brun"], "CE2": ["la rose pousse sur le rocher", "un gros ours grogne dans la grange", "le cheval galope sur la plage", "une vague bleue roule sur le sable", "le loup hurle sous la lune"], "CM1": ["un grand cheval blanc galope sur la plage", "une vague bleue avance sur la plage", "un loup hurle sous la lune", "la belle rose pousse sur le mur"], "CM2": ["la grande vague gronde sous le grand rocher", "un cheval blanc galope sur les dunes", "une ourse brune marche sur la plage", "une belle rose rouge pousse sur le mur"]};
 function applyLevel(l){Object.assign(cfg,LEVELS[l]);cfg.level=l;save();renderTabs();renderParams();showSol=false;build(false);toast(`Niveau ${l}<br><small>réglages adaptés — tout reste modifiable</small>`)}
@@ -733,6 +739,55 @@ function startPModel(){
   guide={polys:model.map(pl=>pl.map(pos2)),tol:Math.max(14,pitch*.3)};
 }
 
+
+/* ---- twister des doigts (multi-touch) ---- */
+const TWCOL=['#e5352b','#1e63ff','#17a34a','#f5a400','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#64748b'];
+const FINGERS=['Pouce','Index','Majeur','Annulaire','Auriculaire'];
+function startTwister(){
+  layer.style.pointerEvents='auto';
+  const size=cfg.tw_size,r=size/2*1.1,two=cfg.tw_hand==='deux',n=cfg.tw_n,total=two?n*2:n,top=90,rnd=Math.random;
+  const hud=el('div',{class:'hud'});
+  const zone=el('div',{style:'position:absolute;inset:0;touch-action:none'});layer.append(zone,hud);
+  const ptrs=new Map();let targets=[],wins=0,lastT=0,t0=0,hold=0,busy=false,raf=0,tm=0;
+  const setP=e=>{const b=zone.getBoundingClientRect();ptrs.set(e.pointerId,[e.clientX-b.left,e.clientY-b.top])};
+  zone.addEventListener('pointerdown',e=>{e.preventDefault();setP(e)});
+  zone.addEventListener('pointermove',e=>{if(ptrs.has(e.pointerId))setP(e)});
+  for(const ev of ['pointerup','pointercancel','pointerleave'])zone.addEventListener(ev,e=>ptrs.delete(e.pointerId));
+  const upd=()=>{hud.innerHTML=`${two?'🙌 2 mains':'🖐 1 main'} · ${total} points · ✔ ${wins}${lastT?` · ${lastT.toFixed(1)} s`:''}`};
+  const cluster=(cx,cy,sp,k)=>{const pts=[];let md=size*1.35,tries=0;
+    while(pts.length<k){const a=rnd()*Math.PI*2,d=Math.sqrt(rnd())*sp,q=[cx+Math.cos(a)*d,cy+Math.sin(a)*d];
+      if(pts.every(p=>Math.hypot(p[0]-q[0],p[1]-q[1])>md))pts.push(q);if(++tries>600){tries=0;md*=.9}}
+    return pts};
+  const newRound=()=>{
+    targets.forEach(t=>t.el.remove());targets=[];hold=0;busy=false;
+    const base=[.16,.26,.38][cfg.tw_spread]*Math.min(W,H),need=size*(.8+.45*n);let sp=Math.max(base,need);
+    const cols=shuffle(TWCOL),centers=two?[W*.27,W*.73]:[W/2];
+    if(two)sp=Math.min(sp,W*.22);
+    const lists=centers.map(cx=>{const m=sp+size/2+14,x=clamp(cx+(rnd()-.5)*W*.06,m,W-m),y=top+sp+size/2+rnd()*Math.max(0,H-top-2*sp-size),pts=cluster(x,clamp(y,top+sp,H-sp-size/2),sp,n);
+      const fing=shuffle(FINGERS).slice(0,n);return pts.map((q,i)=>({q,f:fing[i]}))});
+    let ci=0;
+    lists.forEach((L,hi)=>L.forEach(o=>{
+      const d=el('div',{class:'tw'});d.style.cssText=`width:${size}px;height:${size}px;left:${o.q[0]-size/2}px;top:${o.q[1]-size/2}px;background:${cols[ci++%cols.length]}`;
+      if(cfg.tw_finger)d.append(el('span',{class:'tag'},(two?(hi?'D · ':'G · '):'')+o.f));
+      zone.append(d);targets.push({el:d,x:o.q[0],y:o.q[1]})}));
+    t0=performance.now();upd();
+  };
+  const frame=now=>{
+    if(!busy){
+      const cov=targets.filter(t=>{for(const p of ptrs.values())if(Math.hypot(p[0]-t.x,p[1]-t.y)<=r)return true;return false});
+      targets.forEach(t=>t.el.classList.toggle('held',cov.includes(t)));
+      const all=cov.length===targets.length&&(!cfg.tw_strict||ptrs.size===targets.length);
+      if(all){if(!hold)hold=now;const pr=Math.min(1,(now-hold)/(cfg.tw_hold*1000));targets.forEach(t=>t.el.style.setProperty('--p',pr));
+        if(pr>=1){busy=true;wins++;lastT=(performance.now()-t0)/1000;upd();
+          const b=el('div',{class:'bravo',style:'pointer-events:none'},'Bravo ! 🎉');layer.append(b);
+          tm=setTimeout(()=>{b.remove();newRound()},1100)}}
+      else{hold=0;targets.forEach(t=>t.el.style.setProperty('--p',0))}
+    }
+    raf=requestAnimationFrame(frame)};
+  onClean(()=>{cancelAnimationFrame(raf);clearTimeout(tm)});
+  newRound();raf=requestAnimationFrame(frame);
+}
+
 /* =========================================================
    Registre des activités + interface
    ========================================================= */
@@ -758,6 +813,15 @@ const ACTS={
     {t:'chips',k:'pursuit',label:'Trajet',opts:[['liss','Courbe'],['h','Horizontal'],['v','Vertical'],['diag','Diagonale'],['cercle','Cercle'],['huit','Huit'],['alea','Aléatoire']],show:c=>c.cmode==='poursuite'},
     {t:'range',k:'speed',label:'Vitesse',min:1,max:12,step:1,show:c=>c.cmode==='poursuite'},
     {t:'btn',label:'↺ Relancer',fn:newSeed}]},
+  {id:'twister',label:'Twister des doigts',draw:false,start:startTwister,controls:[
+    {t:'chips',k:'tw_hand',label:'Mains',opts:[['une','1 main'],['deux','2 mains']]},
+    {t:'chips',k:'tw_n',label:'Points par main',opts:[[2,'2'],[3,'3'],[4,'4'],[5,'5']]},
+    {t:'chips',k:'tw_hold',label:'Tenir',opts:[[0.5,'0,5 s'],[1,'1 s'],[2,'2 s'],[3,'3 s']]},
+    {t:'chips',k:'tw_spread',label:'Écart',opts:[[0,'Serrés'],[1,'Moyens'],[2,'Écartés']]},
+    {t:'range',k:'tw_size',label:'Taille',min:70,max:200,step:5},
+    {t:'toggle',k:'tw_finger',label:'Doigts imposés'},
+    {t:'toggle',k:'tw_strict',label:'Pas de doigt en trop'},
+    {t:'btn',label:'🎲 Nouvelle consigne',fn:newSeed}]},
   {id:'pointage',label:'Pointage rapide',draw:false,start:startPointage,controls:[
     {t:'chips',k:'pt_mode',label:'Grille',opts:[['schulte','Chiffres (1 → N)'],['vides','Cases vides'],['tous','Toutes les pastilles'],['couleur','Une couleur']]},
     {t:'chips',k:'pt_grid',label:'Taille',opts:[[0,'Petite'],[1,'Moyenne'],[2,'Grande'],[3,'Très grande']]},
