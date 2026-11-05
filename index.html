@@ -47,7 +47,11 @@ nav input[type=text]{border:1.5px solid #d1d5db;border-radius:10px;padding:8px 1
 .val{font-variant-numeric:tabular-nums;font-weight:700;min-width:26px}
 
 /* ---- scène ---- */
-#stage{position:relative;flex:1;min-height:0;background:var(--bg);overflow:hidden;touch-action:none}
+#zone{position:relative;flex:1;min-height:0;background:#000;overflow:hidden}
+#stage{position:absolute;left:0;top:0;width:100%;height:100%;background:var(--bg);overflow:hidden;touch-action:none}
+#zpop{position:fixed;top:64px;right:12px;z-index:60;background:#fff;color:#111827;border-radius:14px;padding:12px 14px;box-shadow:0 10px 40px rgba(0,0,0,.4);display:none;flex-direction:column;gap:10px;max-width:92vw}
+#zpop.on{display:flex}
+#zpop small{color:#6b7280;max-width:300px;line-height:1.35}
 #scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
 #scroller::-webkit-scrollbar{display:none}
 #sheet{position:relative;width:100%;height:100%}
@@ -126,6 +130,7 @@ body.min #restore{display:block}
   <div class="spacer"></div>
   <div class="lvls" id="lvls" title="Niveau"></div>
   <div class="bgdots" id="bgdots" title="Fond"></div>
+  <button class="ibtn" id="zb" title="Zone d’exercice (réduire et placer l’image)">◱</button>
   <button class="ibtn" id="fs" title="Plein écran">⛶</button>
   <button class="ibtn" id="hide" title="Masquer les menus">👁</button>
 </header>
@@ -133,14 +138,15 @@ body.min #restore{display:block}
   <div class="row" id="acts"></div>
   <div class="row" id="params"></div>
 </nav>
-<main id="stage">
+<div id="zone"><main id="stage">
   <div id="scroller"><div id="sheet">
     <canvas id="bg"></canvas>
     <canvas id="ink"></canvas>
     <div id="layer"></div>
   </div></div>
   <div id="tools"></div>
-</main>
+</main></div>
+<div id="zpop"></div>
 <button id="restore" title="Afficher les menus">👁</button>
 <div id="toast"></div>
 
@@ -173,7 +179,8 @@ const DEF={mode:'oeil',acts:{oeil:'chemins',pre:'serie',grapho:'lettres',visu:'b
   pt_mode:'schulte',pt_grid:1,pt_ord:false,mo_grid:4,mo_col:3,mo_type:'motif',mo_mem:false,best:{},
   pm_type:'figure',pm_grid:5,pm_seg:5,pm_close:false,
   tw_hand:'une',tw_n:3,tw_hold:1,tw_spread:1,tw_size:120,tw_finger:false,tw_strict:false,
-  ry_motif:'vagues',ry_speed:'moyen',ry_rows:1,ry_size:2,ry_guide:true};
+  ry_motif:'vagues',ry_speed:'moyen',ry_rows:1,ry_size:2,ry_guide:true,
+  zs:100,zx:'c',zy:'c'};
 let cfg=JSON.parse(JSON.stringify(DEF));
 try{const s=JSON.parse(localStorage.getItem('atelier-visuo')||'{}');Object.assign(cfg,s);cfg.acts=Object.assign({},DEF.acts,s.acts||{})}catch(e){}
 const save=()=>{try{localStorage.setItem('atelier-visuo',JSON.stringify(cfg))}catch(e){}};
@@ -1022,6 +1029,22 @@ function renderParams(){
   });
   refreshVis();
 }
+/* ---- zone d'exercice : réduire/placer l'activité, le reste de l'image reste noir (donc sans lumière) ---- */
+function applyZone(){const s=cfg.zs||100,st=stage.style,x=cfg.zx||'c',y=cfg.zy||'c';
+  st.width=st.height=s+'%';
+  st.left=x==='g'?'0':x==='d'?(100-s)+'%':((100-s)/2)+'%';
+  st.top=y==='h'?'0':y==='b'?(100-s)+'%':((100-s)/2)+'%'}
+function renderZone(){const pop=$('#zpop');pop.innerHTML='';
+  const grp=(label,key,opts)=>{const g=el('div',{class:'grp'},el('span',{class:'lbl'},label));
+    opts.forEach(([v,t])=>{const b=el('button',{class:'chip'+(cfg[key]===v?' on':'')},t);
+      b.onclick=()=>{cfg[key]=v;save();applyZone();renderZone()};g.append(b)});return g};
+  pop.append(el('div',{class:'lbl'},'Zone d’exercice'),
+    grp('Taille','zs',[[100,'100 %'],[80,'80 %'],[65,'65 %'],[50,'50 %']]),
+    grp('Horizontal','zx',[['g','Gauche'],['c','Centre'],['d','Droite']]),
+    grp('Vertical','zy',[['h','Haut'],['c','Centre'],['b','Bas']]),
+    el('small',{},'L’activité occupe seulement cette zone, le reste de l’image devient noir : le projecteur n’y envoie pas de lumière. Sert à éviter l’ombre de l’enfant ou à réduire une image trop grande.'));
+  const ok=el('button',{class:'btn'},'OK');ok.onclick=()=>pop.classList.remove('on');pop.append(ok)}
+$('#zb').onclick=e=>{e.stopPropagation();const p=$('#zpop');renderZone();p.classList.toggle('on')};
 /* ---- plein écran / masquer ---- */
 $('#hide').onclick=()=>document.body.classList.add('min');
 $('#restore').onclick=()=>document.body.classList.remove('min');
@@ -1037,7 +1060,7 @@ addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
 let rsT=0;
 new ResizeObserver(()=>{const r=stage.getBoundingClientRect();if(Math.round(r.width)===W&&Math.round(r.height)===H)return;
   clearTimeout(rsT);rsT=setTimeout(()=>{fit();build(true)},60)}).observe(stage);
-renderTabs();renderActs();renderParams();fit();build(false);
+applyZone();renderTabs();renderActs();renderParams();fit();build(false);
 </script>
 </body>
 </html>
