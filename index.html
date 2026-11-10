@@ -533,9 +533,10 @@ function startGrapho(){
   for(let r=0;r<rows;r++){
     const y0=mg+band*r,base=writingLines(y0,band);
     if(mode==='lines'||!txt||(mode==='copy'&&r>0))continue;
-    let fs=band*.62;bgx.save();bgx.font=`${fs}px ${FONTS[cfg.gfont]}`;
-    const tw=bgx.measureText(txt).width,maxW=W-W*.06;if(tw>maxW){fs*=maxW/tw;bgx.font=`${fs}px ${FONTS[cfg.gfont]}`}
-    bgx.textBaseline='alphabetic';bgx.lineJoin='round';bgx.lineCap='round';const x=W*.03;
+    let fs=band*(cfg.gfont==='ecole'?.46:.62);bgx.save();bgx.font=`${fs}px ${FONTS[cfg.gfont]}`;bgx.textBaseline='alphabetic';
+    const ext=()=>{const m=bgx.measureText(txt);return{l:m.actualBoundingBoxLeft||0,w:(m.actualBoundingBoxLeft!=null?m.actualBoundingBoxLeft+m.actualBoundingBoxRight:m.width)}};
+    const maxW=W*.88;let e=ext();if(e.w>maxW){fs*=maxW/e.w;bgx.font=`${fs}px ${FONTS[cfg.gfont]}`;e=ext()}
+    bgx.lineJoin='round';bgx.lineCap='round';const x=W*.06+Math.max(0,e.l);
     if(mode==='copy'){bgx.fillStyle=th.fg;bgx.fillText(txt,x,base)}
     else if(cfg.gstyle==='grey'){bgx.fillStyle=th.guide;bgx.globalAlpha=.5;bgx.fillText(txt,x,base)}
     else if(cfg.gstyle==='dots'){bgx.strokeStyle=th.guide;bgx.lineWidth=Math.max(3,fs*.025);bgx.setLineDash([.1,Math.max(10,fs*.06)]);bgx.strokeText(txt,x,base)}
