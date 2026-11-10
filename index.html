@@ -10,6 +10,7 @@
 <title>Atelier visuo-graphique</title>
 <style>
 :root{--bg:#fff;--fg:#1a1d29;--soft:#cfd6e4;--guide:#9aa4b5;--hudbg:rgba(255,255,255,.92);--accent:#ff8a00;--ui:#1f2937}
+@font-face{font-family:'Playwrite FR Trad';src:url(fonts/PlaywriteFRTrad.woff2) format('woff2');font-weight:300 400;font-display:swap}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#111;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
@@ -191,16 +192,16 @@ const LEVELS={
      motif:'vert',rows:2,usize:3,pmode:'trace',pstyle:'dots',gtext:'a o c d',gfont:'script',gmode:'trace',grows:2,gstyle:'grey',
      vset:'formes',vgrid:0,vcount:3,vsim:false,ilevel:0,igrid:0,lcount:3,lcurve:1,pt_mode:'schulte',pt_grid:0,mo_grid:3,mo_col:2,mo_type:'motif',pm_type:'droit',pm_grid:3,pm_seg:3,pm_close:false,tw_hand:'une',tw_n:2,tw_hold:1,tw_spread:0,tw_size:150,tw_finger:false,tw_strict:false,ry_motif:'vert',ry_speed:'lent',ry_rows:1,ry_size:3,ry_guide:true},
  CE1:{chemin:'zigzag',piste:90,lab:6,pts:'maison',npts:12,sym:'num',cmode:'unique',csize:120,ncib:8,timeout:0,pursuit:'liss',speed:4,
-     motif:'ponts',rows:3,usize:2,pmode:'trace',pstyle:'dots',gtext:'le cheval mange',gfont:'cursive',gmode:'trace',grows:2,gstyle:'dots',
+     motif:'ponts',rows:3,usize:2,pmode:'trace',pstyle:'dots',gtext:'le cheval mange',gfont:'ecole',gmode:'trace',grows:2,gstyle:'dots',
      vset:'formes',vgrid:1,vcount:5,vsim:true,ilevel:1,igrid:1,lcount:4,lcurve:1,pt_mode:'schulte',pt_grid:1,mo_grid:4,mo_col:3,mo_type:'motif',pm_type:'droit',pm_grid:4,pm_seg:4,pm_close:false,tw_hand:'une',tw_n:3,tw_hold:1,tw_spread:1,tw_size:130,tw_finger:false,tw_strict:false,ry_motif:'ponts',ry_speed:'lent',ry_rows:1,ry_size:2,ry_guide:true},
  CE2:{chemin:'boucles',piste:70,lab:10,pts:'coeur',npts:16,sym:'let',cmode:'ordre',csize:100,ncib:12,timeout:0,pursuit:'huit',speed:5,
-     motif:'boucles',rows:4,usize:1,pmode:'copy',pstyle:'dots',gtext:'la rose pousse sur le rocher',gfont:'cursive',gmode:'copy',grows:3,gstyle:'outline',
+     motif:'boucles',rows:4,usize:1,pmode:'copy',pstyle:'dots',gtext:'la rose pousse sur le rocher',gfont:'ecole',gmode:'copy',grows:3,gstyle:'outline',
      vset:'lettres',vgrid:2,vcount:7,vsim:true,ilevel:1,igrid:2,lcount:5,lcurve:2,pt_mode:'schulte',pt_grid:2,mo_grid:5,mo_col:3,mo_type:'sym',pm_type:'figure',pm_grid:5,pm_seg:5,pm_close:false,tw_hand:'une',tw_n:4,tw_hold:2,tw_spread:1,tw_size:120,tw_finger:true,tw_strict:false,ry_motif:'vagues',ry_speed:'moyen',ry_rows:1,ry_size:2,ry_guide:true},
  CM1:{chemin:'montagne',piste:50,lab:16,pts:'hasard',npts:20,sym:'alt',cmode:'ordre',csize:80,ncib:16,timeout:3,pursuit:'alea',speed:7,
-     motif:'cren',rows:5,usize:1,pmode:'copy',pstyle:'dots',gtext:'un grand cheval blanc galope sur la plage',gfont:'cursive',gmode:'copy',grows:4,gstyle:'outline',
+     motif:'cren',rows:5,usize:1,pmode:'copy',pstyle:'dots',gtext:'un grand cheval blanc galope sur la plage',gfont:'ecole',gmode:'copy',grows:4,gstyle:'outline',
      vset:'lettres',vgrid:2,vcount:10,vsim:true,ilevel:2,igrid:3,lcount:7,lcurve:2,pt_mode:'couleur',pt_grid:2,mo_grid:6,mo_col:4,mo_type:'sym',pm_type:'oblique',pm_grid:6,pm_seg:7,pm_close:true,tw_hand:'deux',tw_n:2,tw_hold:2,tw_spread:1,tw_size:110,tw_finger:true,tw_strict:false,ry_motif:'boucles',ry_speed:'moyen',ry_rows:2,ry_size:1,ry_guide:true},
  CM2:{chemin:'circuit',piste:36,lab:24,pts:'hasard',npts:26,sym:'alt',cmode:'ordre',csize:60,ncib:22,timeout:2,pursuit:'alea',speed:9,
-     motif:'vagues',rows:6,usize:0,pmode:'copy',pstyle:'dots',gtext:'la grande vague gronde sous le grand rocher',gfont:'cursive',gmode:'copy',grows:5,gstyle:'outline',
+     motif:'vagues',rows:6,usize:0,pmode:'copy',pstyle:'dots',gtext:'la grande vague gronde sous le grand rocher',gfont:'ecole',gmode:'copy',grows:5,gstyle:'outline',
      vset:'chiffres',vgrid:3,vcount:14,vsim:true,ilevel:2,igrid:4,lcount:9,lcurve:3,pt_mode:'couleur',pt_grid:3,mo_grid:8,mo_col:5,mo_type:'hasard',pm_type:'oblique',pm_grid:8,pm_seg:10,pm_close:true,tw_hand:'deux',tw_n:3,tw_hold:3,tw_spread:2,tw_size:100,tw_finger:true,tw_strict:true,ry_motif:'cren',ry_speed:'rapide',ry_rows:3,ry_size:1,ry_guide:true}
 };
 const PHRASES={"CP": ["la lune", "un loup", "le cheval", "la mule", "un lama", "la rue", "le coq", "une poule", "un nez", "le sol"], "CE1": ["le cheval mange", "un gros loup", "la poule pond", "le loup mord", "une mule brune", "elle ramasse une pomme", "un cheval blanc", "la vague roule", "un ours brun"], "CE2": ["la rose pousse sur le rocher", "un gros ours grogne dans la grange", "le cheval galope sur la plage", "une vague bleue roule sur le sable", "le loup hurle sous la lune"], "CM1": ["un grand cheval blanc galope sur la plage", "une vague bleue avance sur la plage", "un loup hurle sous la lune", "la belle rose pousse sur le mur"], "CM2": ["la grande vague gronde sous le grand rocher", "un cheval blanc galope sur les dunes", "une ourse brune marche sur la plage", "une belle rose rouge pousse sur le mur"]};
@@ -515,6 +516,7 @@ function startPre(){
    ========================================================= */
 const FONTS={
   script:'"Comic Sans MS","Chalkboard SE","Marker Felt","Trebuchet MS",sans-serif',
+  ecole:'"Playwrite FR Trad","Snell Roundhand","Apple Chancery",cursive',
   cursive:'"Snell Roundhand","Apple Chancery","Brush Script MT","Segoe Script","Lucida Handwriting",cursive',
   baton:'"Arial Rounded MT Bold","Avenir Next","Helvetica Neue",Arial,sans-serif'};
 function writingLines(y0,band){
@@ -747,9 +749,10 @@ function startPModel(){
   let model;
   if(cfg.pm_type==='figure'&&n>=5){const o=(n-5)>>1;model=pick(FIGS).map(pl=>pl.map(q=>[q[0]+o,q[1]+o]))}
   else model=genDots(n,cfg.pm_type==='droit'?'droit':'oblique',cfg.pm_type==='figure'?5:cfg.pm_seg,cfg.pm_type==='figure'?false:cfg.pm_close);
-  const boxes=land?[[0,0,W/2,H],[W/2,0,W/2,H]]:[[0,0,W,H/2],[0,H/2,W,H/2]];
-  if(land)drawPolys([[[W/2,H*.04],[W/2,H*.96]]],{color:th.soft,width:3,dash:[10,10]});
-  else drawPolys([[[W*.04,H/2],[W*.96,H/2]]],{color:th.soft,width:3,dash:[10,10]});
+  const HU=H-84; /* on laisse la place de la barre d'outils flottante en bas */
+  const boxes=land?[[0,0,W/2,HU],[W/2,0,W/2,HU]]:[[0,0,W,HU/2],[0,HU/2,W,HU/2]];
+  if(land)drawPolys([[[W/2,HU*.04],[W/2,HU*.96]]],{color:th.soft,width:3,dash:[10,10]});
+  else drawPolys([[[W*.04,HU/2],[W*.96,HU/2]]],{color:th.soft,width:3,dash:[10,10]});
   let pos2=null,pitch=0;
   boxes.forEach((b,bi)=>{
     const[x,y,w,h]=b,side=Math.min(w-90,h-110),ox=x+(w-side)/2,oy=y+70+(h-70-side)/2;pitch=side/(n-1);
@@ -946,7 +949,7 @@ const ACTS={
     {t:'phrases'},
     {t:'text',k:'gtext',label:'Texte',ph:'a o c d…'},
     {t:'chips',k:'gtext',label:'Modèles',opts:[['a o c d g q','Ronds'],['n m r h p b','Ponts'],['l e b h k f','Boucles'],['i u t j y','Jambages'],['0 1 2 3 4 5 6 7 8 9','Chiffres'],['A B C D E F','Capitales']],preset:true},
-    {t:'chips',k:'gfont',label:'Police',opts:[['script','Écolier'],['cursive','Cursive'],['baton','Bâtons']]},
+    {t:'chips',k:'gfont',label:'Police',opts:[['script','Écolier'],['ecole','Cursive école'],['cursive','Cursive'],['baton','Bâtons']]},
     {t:'chips',k:'gmode',label:'Exercice',opts:[['trace','Repasser'],['copy','Copier'],['lines','Lignes seules']]},
     {t:'chips',k:'gstyle',label:'Modèle',opts:[['grey','Gris'],['dots','Pointillés'],['outline','Contour']],show:c=>c.gmode==='trace'},
     {t:'range',k:'grows',label:'Lignes',min:1,max:6,step:1}]}],
@@ -1017,7 +1020,7 @@ function renderParams(){
     else if(c.t==='range'){const out=el('span',{class:'val'},String(cfg[c.k])),inp=el('input',{type:'range',min:c.min,max:c.max,step:c.step});inp.value=cfg[c.k];
       inp.oninput=()=>{cfg[c.k]=+inp.value;out.textContent=inp.value;changed(false)};vis.push(()=>{inp.value=cfg[c.k];out.textContent=cfg[c.k]});mk(c,el('span',{class:'grp'},inp,out))}
     else if(c.t==='phrases'){const L=cfg.level||'CE1',list=PHRASES[L],w=el('span',{class:'grp'}),bs=[];
-      const set=ph=>{cfg.gtext=ph;cfg.gmode='copy';cfg.gfont='cursive';cfg.grows=2;changed()};
+      const set=ph=>{cfg.gtext=ph;cfg.gmode='copy';cfg.gfont='ecole';cfg.grows=2;changed()};
       list.forEach(ph=>{const b=el('button',{class:'chip'},ph);b.onclick=()=>set(ph);bs.push([ph,b]);w.append(b)});
       const dice=el('button',{class:'btn'},'🎲 Au hasard');dice.onclick=()=>{const o=list.filter(x=>x!==cfg.gtext);set(o[Math.floor(Math.random()*o.length)])};w.append(dice);
       vis.push(()=>bs.forEach(([v,b])=>b.classList.toggle('on',cfg.gtext===v)));mk({label:'Phrases à recopier, sans lever le crayon · '+L},w)}
@@ -1060,6 +1063,7 @@ addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
 let rsT=0;
 new ResizeObserver(()=>{const r=stage.getBoundingClientRect();if(Math.round(r.width)===W&&Math.round(r.height)===H)return;
   clearTimeout(rsT);rsT=setTimeout(()=>{fit();build(true)},60)}).observe(stage);
+document.fonts&&document.fonts.load('40px "Playwrite FR Trad"').then(()=>{if(cfg.mode==='grapho')build(true)}).catch(()=>{});
 applyZone();renderTabs();renderActs();renderParams();fit();build(false);
 </script>
 </body>
