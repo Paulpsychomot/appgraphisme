@@ -212,6 +212,7 @@ const DEF={mode:'oeil',acts:{oeil:'chemins',pre:'serie',grapho:'lettres',visu:'b
   pm_type:'figure',pm_grid:5,pm_seg:5,pm_close:false,
   tw_hand:'une',tw_n:3,tw_hold:1,tw_spread:1,tw_size:120,tw_finger:false,tw_strict:false,
   ry_motif:'vagues',ry_speed:'moyen',ry_rows:1,ry_size:2,ry_guide:true,
+  du_set:'c o a d',du_mode:'voir',du_prac:'bloc',du_speed:'lent',du_rows:2,du_son:false,du_ctype:'trace',du_cdur:60,
   zs:100,zx:'c',zy:'c'};
 let cfg=JSON.parse(JSON.stringify(DEF));
 try{const s=JSON.parse(localStorage.getItem('atelier-visuo')||'{}');Object.assign(cfg,s);cfg.acts=Object.assign({},DEF.acts,s.acts||{})}catch(e){}
@@ -928,6 +929,165 @@ function startRythme(){
   raf=requestAnimationFrame(frame);
 }
 
+/* ---- apprendre une lettre : ductus animé (guideline KNGF : piste en mouvement, puis de mémoire, 3-4 lettres, pratique bloquée puis aléatoire) ---- */
+/* lettres cursives en unités : x vers la droite, y vers le haut, ligne de base 0, hauteur des petites lettres 1.
+   lettre = traits (lever de crayon entre deux) ; trait = morceaux (pointe nette entre deux morceaux) */
+const ATT=[[0,0],[.12,.5],[.36,.93],[.62,1]],BOWL=[[.62,1],[.4,.97],[.24,.65],[.27,.2],[.45,0],[.65,.15],[.75,.55],[.78,1]];
+const LOOPUP=[[0,0],[.32,.45],[.6,1.3],[.6,1.9],[.46,2.12],[.32,1.88],[.29,1]];
+const U12=[[[0,0],[.18,.45],[.28,1]],[[.28,1],[.25,.3],[.33,.03],[.5,.05],[.66,.45],[.72,1]]];
+const CURS={
+ a:[[ATT,BOWL,[[.78,1],[.75,.4],[.78,.06],[.92,0],[1.1,.22]]]],
+ b:[[[...LOOPUP,[.31,.2],[.48,0],[.7,.15],[.82,.6],[.75,.95],[.62,.85],[.78,.82],[1.05,.88]]]],
+ c:[[ATT,[[.62,1],[.4,.97],[.24,.65],[.27,.2],[.47,0],[.75,.08],[1,.3]]]],
+ d:[[ATT,[...BOWL.slice(0,-1),[.82,2]],[[.82,2],[.77,.5],[.79,.06],[.92,0],[1.1,.22]]]],
+ e:[[[[0,0],[.3,.22],[.58,.55],[.6,.85],[.45,.97],[.28,.78],[.24,.38],[.38,.06],[.6,0],[.82,.12],[1,.3]]]],
+ f:[[[...LOOPUP,[.29,-.4],[.29,-.8],[.37,-.97],[.48,-.78],[.43,-.32],[.33,.03],[.6,.06],[.85,.16],[1,.3]]]],
+ g:[[ATT,BOWL,[[.78,1],[.76,0],[.7,-.65],[.52,-.95],[.34,-.82],[.42,-.45],[.72,-.15],[1.05,.2]]]],
+ h:[[[...LOOPUP,[.28,0]],[[.28,0],[.36,.55],[.55,.95],[.75,.85],[.78,.3],[.84,.03],[.95,0],[1.12,.22]]]],
+ i:[[[[0,0],[.22,.45],[.38,1]],[[.38,1],[.35,.3],[.42,.03],[.58,0],[.8,.22]]],[[[.38,1.45]]]],
+ j:[[[[0,0],[.22,.45],[.4,1]],[[.4,1],[.38,0],[.33,-.65],[.18,-.95],[.04,-.8],[.14,-.45],[.45,-.15],[.75,.2]]],[[[.4,1.45]]]],
+ k:[[[...LOOPUP,[.28,0]],[[.28,0],[.38,.6],[.6,.97],[.76,.85],[.66,.62],[.42,.5]],[[.42,.5],[.66,.4],[.74,.06],[.88,0],[1.08,.22]]]],
+ l:[[[...LOOPUP,[.31,.2],[.46,0],[.7,.08],[.95,.28]]]],
+ m:[[[[0,0],[.1,.55],[.2,1]],[[.2,1],[.18,0]],[[.18,0],[.25,.65],[.38,.98],[.52,.9],[.55,.5],[.54,0]],[[.54,0],[.6,.65],[.74,.98],[.88,.9],[.91,.5],[.9,.12],[1,0],[1.18,.22]]]],
+ n:[[[[0,0],[.1,.55],[.2,1]],[[.2,1],[.18,0]],[[.18,0],[.26,.65],[.42,.98],[.58,.9],[.62,.5],[.62,.12],[.72,0],[.92,.22]]]],
+ o:[[ATT,[[.62,1],[.4,.97],[.24,.65],[.27,.2],[.45,0],[.66,.12],[.78,.5],[.72,.88],[.62,1],[.8,.95],[1.02,.92]]]],
+ p:[[[[0,0],[.12,.55],[.25,1.05]],[[.25,1.05],[.22,-.95]],[[.22,-.95],[.24,.3],[.35,.8],[.55,1],[.74,.8],[.74,.3],[.6,.05],[.4,0],[.3,.12],[.5,.06],[.8,.12],[1,.28]]]],
+ q:[[ATT,BOWL,[[.78,1],[.77,-.95]],[[.77,-.95],[.82,-.55],[.95,-.1],[1.1,.2]]]],
+ r:[[[[0,0],[.2,.55],[.33,1],[.42,.88],[.55,.92],[.62,.85]],[[.62,.85],[.6,.4],[.62,.08],[.75,0],[.95,.22]]]],
+ s:[[[[0,0],[.2,.5],[.38,1],[.52,.6],[.58,.25],[.45,.03],[.25,.05],[.22,.15],[.45,.08],[.75,.12],[.95,.3]]]],
+ t:[[[[0,0],[.22,.6],[.38,1.6]],[[.38,1.6],[.34,.3],[.42,.03],[.58,0],[.8,.22]]],[[[.15,1],[.62,1]]]],
+ u:[[...U12,[[.72,1],[.69,.3],[.76,.03],[.9,0],[1.08,.22]]]],
+ v:[[[[0,0],[.12,.55],[.22,1]],[[.22,1],[.24,.45],[.36,.04],[.55,.25],[.68,.75],[.72,1],[.8,.88],[1,.9],[1.12,.92]]]],
+ w:[[[[0,0],[.1,.55],[.18,1]],[[.18,1],[.2,.4],[.3,.03],[.44,.4],[.5,.85]],[[.5,.85],[.53,.4],[.64,.03],[.8,.4],[.86,1],[.95,.88],[1.12,.9],[1.25,.92]]]],
+ x:[[[[0,0],[.2,.6],[.35,1],[.48,.6],[.56,.15],[.7,0],[.95,.25]]],[[[.78,.95],[.22,.05]]]],
+ y:[[...U12,[[.72,1],[.7,0],[.66,-.65],[.48,-.95],[.3,-.82],[.38,-.45],[.68,-.15],[1,.2]]]],
+ z:[[[[0,0],[.2,.6],[.38,.98],[.6,.95],[.62,.7],[.42,.45],[.35,.42]],[[.35,.42],[.6,.35],[.65,-.2],[.5,-.85],[.32,-.8],[.42,-.4],[.75,-.1],[1,.22]]]]
+};
+function crSample(P,n=12){if(P.length<2)return P.slice();const out=[P[0]];
+  for(let i=0;i<P.length-1;i++){const p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||P[i+1];
+    for(let k=1;k<=n;k++){const t=k/n,t2=t*t,t3=t2*t;
+      out.push([0,1].map(d=>.5*(2*p1[d]+(-p0[d]+p2[d])*t+(2*p0[d]-5*p1[d]+4*p2[d]-p3[d])*t2+(-p0[d]+3*p1[d]-3*p2[d]+p3[d])*t3)))}}
+  return out}
+const curStrokes=ch=>(CURS[ch]||[]).map(st=>{const o=[];st.forEach((pc,i)=>{const s=crSample(pc);o.push(...(i?s.slice(1):s))});return o});
+const curWidth=ch=>Math.max(.6,...curStrokes(ch).flat().map(p=>p[0]));
+const MOTS=['ami','âne','arbre','avion','balle','bateau','bébé','biche','bol','cadeau','canard','chat','chien','coq','cube','dame','domino','école','fée','feu','fille','four','gare','gâteau','girafe','gomme','hibou','jardin','jeu','joue','kiwi','koala','lapin','lion','livre','loup','lune','mur','moto','nid','note','nuage','olive','ours','pain','papa','pied','pomme','poule','quai','quille','radis','robe','rose','sac','sel','soleil','table','tapis','tasse','tomate','tortue','train','tulipe','vache','vélo','ville','wagon','yoyo','zoo','zèbre','dodo','coude','code','cadre','gouda','bague','beau','bulle','belle','hotte','kilo','fil','lit','mime','nana','pré','prune','rire','sirop','sucre','zut','vive','taxi','yeux'];
+function startDuctus(){
+  const th=T(),dom=getComputedStyle(document.documentElement).getPropertyValue('--dom').trim()||'#e0603a';
+  const L=[...new Set((cfg.du_set||'').toLowerCase().replace(/[^a-z]/g,''))].filter(c=>CURS[c]).slice(0,4);
+  if(!L.length){toast('Choisis 1 à 4 lettres (a à z)');return}
+  const mode=cfg.du_mode,top=64,hud=el('div',{class:'hud',style:'pointer-events:auto'});layer.append(hud);
+  const spd={lent:2.2,moyen:4,rapide:7}[cfg.du_speed]||4;
+  const say=ch=>{if(!cfg.du_son||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ch);u.lang='fr-FR';u.rate=.8;speechSynthesis.speak(u)}catch(e){}};
+  /* placement d'une suite de lettres sur une ligne */
+  const place=(seq,ox,base,u,gap)=>{const out=[];let x=ox;seq.forEach(ch=>{const st=curStrokes(ch).map(s=>s.map(p=>[x+p[0]*u,base-p[1]*u]));out.push({ch,st});x+=(curWidth(ch)+gap)*u});return out};
+  const seqW=(seq,gap)=>seq.reduce((a,c)=>a+curWidth(c)+gap,0)-gap;
+  const drawModel=(ctx,items,u,style)=>{ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    items.forEach(it=>it.st.forEach((s,si)=>{
+      if(s.length===1){ctx.fillStyle=style==='dots'?th.guide:th.fg;ctx.globalAlpha=style==='dots'?1:.35;ctx.beginPath();ctx.arc(s[0][0],s[0][1],Math.max(3,u*.07),0,7);ctx.fill();ctx.globalAlpha=1;return}
+      ctx.strokeStyle=style==='dots'?th.guide:th.fg;ctx.globalAlpha=style==='dots'?1:.35;ctx.lineWidth=style==='dots'?Math.max(3,u*.06):Math.max(4,u*.1);
+      ctx.setLineDash(style==='dots'?[.1,Math.max(8,u*.11)]:[]);ctx.beginPath();s.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+      /* départ (vert) et sens (flèche) */
+      const r=Math.max(5,u*.09),p=s[0];let j=1,d=0;while(j<s.length-1&&d<u*.4){d+=Math.hypot(s[j][0]-s[j-1][0],s[j][1]-s[j-1][1]);j++}
+      ctx.fillStyle=si?'#fff':'#16a34a';ctx.strokeStyle='#16a34a';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(p[0],p[1],r,0,7);ctx.fill();ctx.stroke();
+      const q=s[j],a=Math.atan2(q[1]-s[j-1][1],q[0]-s[j-1][0]),h=Math.max(7,u*.13);ctx.fillStyle='#16a34a';ctx.beginPath();
+      ctx.moveTo(q[0]+Math.cos(a)*h*.6,q[1]+Math.sin(a)*h*.6);ctx.lineTo(q[0]+Math.cos(a+2.5)*h,q[1]+Math.sin(a+2.5)*h);ctx.lineTo(q[0]+Math.cos(a-2.5)*h,q[1]+Math.sin(a-2.5)*h);ctx.fill()}));
+    ctx.restore()};
+  const mkCanvas=()=>{const c=el('canvas',{class:'fx'});c.width=W*DPR;c.height=SH*DPR;c.style.width=W+'px';c.style.height=SH+'px';layer.append(c);const x=c.getContext('2d');x.setTransform(DPR,0,0,DPR,0,0);return[c,x]};
+  /* animation : balle + trace dans la couleur du domaine */
+  const[,ax]=mkCanvas();let raf=0;onClean(()=>{cancelAnimationFrame(raf);try{speechSynthesis.cancel()}catch(e){}});
+  const animate=(items,u,loop,done)=>{cancelAnimationFrame(raf);const segs=[];let t=0;const v=spd*u,P=300;
+    items.forEach((it,ii)=>it.st.forEach((s,si)=>{const cum=[0];for(let i=1;i<s.length;i++)cum.push(cum[i-1]+Math.hypot(s[i][0]-s[i-1][0],s[i][1]-s[i-1][1]));
+      const len=cum[cum.length-1],dur=s.length===1?250:len/v*1000;segs.push({s,cum,len,t0:t,t1:t+dur,first:si===0,ch:it.ch});t+=dur+(si===it.st.length-1?P*2:P)}));
+    const total=t;let t0=performance.now(),said=-1;
+    const frame=now=>{let e=now-t0;if(e>total){if(loop){t0=now;e=0;said=-1}else{ax.clearRect(0,0,W,SH);done&&done();return}}
+      ax.clearRect(0,0,W,SH);ax.lineCap='round';ax.lineJoin='round';ax.strokeStyle=dom;ax.fillStyle=dom;ax.lineWidth=Math.max(4,u*.1);
+      let ball=null;segs.forEach((g,gi)=>{if(e<g.t0)return;if(g.first&&said<gi){said=gi;say(g.ch)}
+        if(g.s.length===1){ax.beginPath();ax.arc(g.s[0][0],g.s[0][1],Math.max(3,u*.07),0,7);ax.fill();if(e<g.t1)ball=g.s[0];return}
+        const d=Math.min(g.len,(e-g.t0)/(g.t1-g.t0)*g.len);ax.beginPath();ax.moveTo(g.s[0][0],g.s[0][1]);let pt=g.s[0];
+        for(let i=1;i<g.s.length;i++){if(g.cum[i]>d){const f=(d-g.cum[i-1])/((g.cum[i]-g.cum[i-1])||1);pt=[g.s[i-1][0]+(g.s[i][0]-g.s[i-1][0])*f,g.s[i-1][1]+(g.s[i][1]-g.s[i-1][1])*f];ax.lineTo(pt[0],pt[1]);break}pt=g.s[i];ax.lineTo(pt[0],pt[1])}
+        ax.stroke();if(e<g.t1)ball=pt});
+      if(ball){ax.save();ax.fillStyle='#fff';ax.beginPath();ax.arc(ball[0],ball[1],Math.max(9,u*.16),0,7);ax.fill();ax.fillStyle=dom;ax.beginPath();ax.arc(ball[0],ball[1],Math.max(6,u*.11),0,7);ax.fill();ax.restore()}
+      raf=requestAnimationFrame(frame)};
+    raf=requestAnimationFrame(frame)};
+  const btn=(icon,txt,fn)=>{const b=el('button',{class:'sm',html:ic(icon)+txt});b.onclick=fn;hud.append(b);return b};
+  const polysOf=items=>items.flatMap(it=>it.st.filter(s=>s.length>1));
+
+  if(mode==='voir'){
+    const gapU=.45,wU=seqW(L,gapU),u=Math.min((H-top)*.92/4,W*.86/wU),band=u*4;
+    const y0=top+(H-top-band)/2,base=writingLines(y0,band),items=place(L,(W-wU*u)/2,base,u,gapU);
+    drawModel(bgx,items,u,'dots');guide={polys:polysOf(items),tol:Math.max(14,u*.18)};
+    hud.append(el('span',{},'Regarde la balle, puis repasse avec le doigt'));
+    btn('refresh','Revoir',()=>animate(items,u,false));animate(items,u,false);return}
+
+  if(mode==='mots'){
+    const sc_=w=>[...w].filter(c=>L.includes(c)).length/w.length;
+    let pool=MOTS.filter(w=>[...w].some(c=>L.includes(c))).sort((a,b)=>sc_(b)-sc_(a)).slice(0,14);pool=shuffle(pool);
+    const rows=Math.max(2,cfg.du_rows),band=(H-top-10)/rows;
+    for(let r=0;r<rows;r++){const y0=top+band*r,base=writingLines(y0,band);if(r%2)continue;
+      const words=pool.slice(r/2*3,r/2*3+3).join('   ');if(!words)continue;
+      let fs=band*.46;bgx.save();bgx.font=`${fs}px ${FONTS.ecole}`;const w=bgx.measureText(words).width;if(w>W*.88){fs*=W*.88/w;bgx.font=`${fs}px ${FONTS.ecole}`}
+      bgx.fillStyle=th.fg;bgx.fillText(words,W*.05,base);bgx.restore()}
+    hud.append(el('span',{},`Mots avec ${L.join(' ')} : copie sur la ligne du dessous`));
+    btn('refresh','Autres mots',newSeed);return}
+
+  /* repasser / de mémoire : lignes d'écriture */
+  const rows=Math.max(2,cfg.du_rows),band=(H-top-10)/rows,u=band*.25,gapU=.5,all=[];
+  const avgW=L.reduce((a,c)=>a+curWidth(c),0)/L.length,k=Math.max(2,Math.floor((W*.9/u+gapU)/(avgW+gapU)));
+  /* pratique bloquée : c c c o o o a a a… ; aléatoire : les mêmes lettres mélangées. On remplit les lignes à la suite. */
+  const per=mode==='memoire'?1:Math.min(8,k),n=rows*per,cnt=Math.max(1,Math.floor(n/L.length));
+  let flow=L.flatMap(c=>Array(cnt).fill(c));while(flow.length<n)flow.push(L[flow.length%L.length]);
+  if(cfg.du_prac==='alea'){flow=shuffle(flow);for(let i=1;i<flow.length;i++)if(flow[i]===flow[i-1]){const j=flow.findIndex((c,jj)=>jj>i&&c!==flow[i]);if(j>0)[flow[i],flow[j]]=[flow[j],flow[i]]}}
+  for(let r=0;r<rows;r++){const y0=top+band*r,base=writingLines(y0,band);
+    const seq=flow.slice(r*per,(r+1)*per);while(seq.length>1&&seqW(seq,gapU)*u>W*.9)seq.pop();
+    all.push(...place(seq,W*.05,base,u,gapU))}
+  /* chrono : « Repasser vite » (temps + couverture + précision, arrêt auto) ou « Temps limité » (on compte les lettres réussies) */
+  if(mode==='chrono'){
+    const typ=cfg.du_ctype,dur=cfg.du_cdur,s0=strokes.length,tol=Math.max(14,u*.2);
+    const key='du:'+L.join('')+':'+(typ==='libre'?'libre'+dur:'trace'+cfg.du_prac),best=cfg.best[key];
+    let polys=[];
+    if(typ==='trace'){drawModel(bgx,all,u,'dots');polys=polysOf(all);guide={polys,tol}}
+    else drawModel(bgx,place(L,W*.05,top+band*.68,u,gapU),u,'full');
+    const st=el('span',{});hud.append(st);
+    const recTxt=v=>`record ${v.toFixed(1)} lettres/min`;
+    const measure=()=>{const I=[];strokes.slice(s0).filter(x=>!x.erase).forEach(x=>resample(x.pts.map(p=>[p.x,p.y]),4,I));
+      if(!I.length)return{cov:0,prec:0};const G=[];polys.forEach(pl=>resample(pl,4,G));const hI=makeHash(I,tol),hG=makeHash(G,tol);
+      return{cov:G.filter(p=>near(hI,p,tol)).length/G.length,prec:I.filter(p=>near(hG,p,tol)).length/I.length}};
+    let t0=0,raf2=0,lastM=0,over=false;onClean(()=>cancelAnimationFrame(raf2));
+    const result=(lpm,extra)=>{let rec=false;if(lpm>0&&(!best||lpm>best)){cfg.best[key]=lpm;save();rec=!!best}
+      return `<b>${lpm.toFixed(1)}</b> lettres/min${extra||''}<br>${rec?'nouveau record':best?recTxt(Math.max(best,lpm)):''}`};
+    const finish=e=>{over=true;cancelAnimationFrame(raf2);ink.style.pointerEvents='none';st.textContent='Terminé';fin.remove();
+      if(typ==='trace'){const m=measure(),n=all.length,lpm=m.cov>=.6?n/(e/60):0;
+        layer.append(el('div',{class:'bravo'},m.cov>=.85&&m.prec>=.8?'Bravo !':'Terminé',el('div',{style:'font-size:20px;font-weight:500;margin-top:8px;line-height:1.5',
+          html:`${e.toFixed(1)} s pour ${n} lettres<br>modèle couvert ${Math.round(m.cov*100)} % · précision ${Math.round(m.prec*100)} %<br>`+(lpm?result(lpm):'trace tout le modèle pour avoir une vitesse')}),
+          el('button',{onclick:()=>build(false)},'Rejouer')))}
+      else{let n=0;const v=el('b',{style:'font-size:40px;min-width:70px;display:inline-block'},'0'),out=el('div',{style:'font-size:18px;font-weight:500;margin-top:10px'});
+        const step=d=>{n=Math.max(0,n+d);v.textContent=n};
+        const b=(t,d)=>el('button',{style:'margin:0 6px;padding:8px 16px',onclick:()=>step(d)},t);
+        const ok=el('button',{},'Valider');ok.onclick=()=>{out.innerHTML=result(n/(dur/60),` · ${n} lettres en ${dur} s`);ok.remove()};
+        layer.append(el('div',{class:'bravo',style:'font-size:24px'},'Temps écoulé',el('div',{style:'font-size:18px;font-weight:500;margin:6px 0 4px'},'Combien de lettres bien formées ?'),
+          el('div',{},b('−',-1),v,b('+',1),b('+5',5)),out,ok,el('button',{style:'margin-left:8px;background:#e6e3dc;color:#1c1c1e',onclick:()=>build(false)},'Rejouer')))}};
+    const fin=btn('check','Fini',()=>{if(t0&&!over)finish((performance.now()-t0)/1000)});if(typ==='libre')fin.remove();
+    const frame=now=>{
+      if(!t0){if(strokes.length>s0||cur)t0=now;st.textContent=(typ==='trace'?'Repasse le plus vite possible, sans déborder':`Écris ${L.join(' ')} le plus de fois possible en ${dur} s`)+(best?' · '+recTxt(best):'')+' · commence quand tu veux'}
+      else{const e=(now-t0)/1000;
+        if(typ==='libre'){const r=dur-e;st.innerHTML=`<b>${Math.max(0,Math.ceil(r))} s</b>`;if(r<=0){finish(dur);return}}
+        else{st.innerHTML=`<b>${e.toFixed(1)} s</b>`;if(now-lastM>500&&!cur){lastM=now;if(measure().cov>=.92){finish(e);return}}}}
+      raf2=requestAnimationFrame(frame)};
+    raf2=requestAnimationFrame(frame);return}
+  if(mode==='repasser'){
+    drawModel(bgx,all,u,'dots');guide={polys:polysOf(all),tol:Math.max(14,u*.2)};
+    hud.append(el('span',{},cfg.du_prac==='bloc'?'Repasse chaque lettre':'Repasse dans l’ordre'));
+    const firsts=[];all.forEach(it=>{if(!firsts.some(f=>f.ch===it.ch))firsts.push(it)});
+    btn('refresh','Revoir',()=>animate(firsts,u,false));animate(firsts,u,false);return}
+  /* de mémoire : la lettre modèle s'affiche avec son tracé, puis disparaît ; « Comparer » la réaffiche par-dessus */
+  const[mc,mx]=mkCanvas();drawModel(mx,all,u,'full');
+  hud.append(el('span',{},'Regarde, puis écris de mémoire sur la ligne'));
+  const hide=()=>{mc.style.transition='opacity .6s';mc.style.opacity='0'};
+  btn('refresh','Revoir',()=>{mc.style.opacity='1';animate(all,u,false,()=>setTimeout(hide,900))});
+  btn('eye','Comparer',()=>{mc.style.transition='none';mc.style.opacity=mc.style.opacity==='0'?'.55':'0'});
+  animate(all,u,false,()=>setTimeout(hide,900));
+}
+
 /* =========================================================
    Registre des activités + interface
    ========================================================= */
@@ -990,6 +1150,16 @@ const ACTS={
     {t:'btn',label:'▶ Rejouer',fn:()=>build(false)}]},
   {id:'libre',label:'Page libre',draw:true,start:()=>{},controls:[{t:'btn',label:'Utilise la barre d’outils en bas, et le fond ci-dessus',fn:()=>{}}]}],
  grapho:[
+  {id:'ductus',label:'Apprendre une lettre',draw:true,start:startDuctus,controls:[
+    {t:'chips',k:'du_set',label:'Lettres',opts:[['c o a d','c o a d'],['g q a d','g q a d'],['e l b h','e l b h'],['k f l e','k f l e'],['i u t j','i u t j'],['n m p r','n m p r'],['v w x y','v w x y'],['s z','s z']],preset:true},
+    {t:'text',k:'du_set',label:'Mes lettres (4 max)',ph:'a d g'},
+    {t:'chips',k:'du_mode',label:'Étape',opts:[['voir','1 · Regarder'],['repasser','2 · Repasser'],['memoire','3 · De mémoire'],['mots','4 · Dans des mots'],['chrono','5 · Chrono']]},
+    {t:'chips',k:'du_ctype',label:'Chrono',opts:[['trace','Repasser vite'],['libre','Temps limité']],show:c=>c.du_mode==='chrono'},
+    {t:'chips',k:'du_cdur',label:'Durée',opts:[[30,'30 s'],[60,'1 min'],[120,'2 min']],show:c=>c.du_mode==='chrono'&&c.du_ctype==='libre'},
+    {t:'chips',k:'du_prac',label:'Pratique',opts:[['bloc','Bloquée'],['alea','Aléatoire']],show:c=>c.du_mode==='repasser'||c.du_mode==='memoire'||(c.du_mode==='chrono'&&c.du_ctype==='trace')},
+    {t:'chips',k:'du_speed',label:'Vitesse du tracé',opts:[['lent','Lent'],['moyen','Moyen'],['rapide','Rapide']],show:c=>c.du_mode!=='mots'&&c.du_mode!=='chrono'},
+    {t:'range',k:'du_rows',label:'Lignes',min:2,max:5,step:1,show:c=>c.du_mode!=='voir'},
+    {t:'toggle',k:'du_son',label:'Dire la lettre'}]},
   {id:'lettres',label:'Lettres & mots',draw:true,start:startGrapho,controls:[
     {t:'phrases'},
     {t:'text',k:'gtext',label:'Texte',ph:'a o c d…'},
