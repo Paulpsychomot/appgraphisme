@@ -13,7 +13,7 @@
 :root{--dom:#0f8f7a;--line:#e6e3dc;--ink:#1c1c1e;--muted:#7a7873;--paper:#fbfaf7;--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--bg:#fff;--fg:#1a1d29;--soft:#cfd6e4;--guide:#9aa4b5;--hudbg:rgba(255,255,255,.92);--accent:#ff8a00;--ui:#1f2937}
 @font-face{font-family:'Playwrite FR Trad';src:url(fonts/PlaywriteFRTrad.woff2) format('woff2');font-weight:300 400;font-display:swap}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#111;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#fbfaf7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 body{display:flex;flex-direction:column;height:100dvh}
 button{font:inherit;cursor:pointer;color:inherit}
@@ -55,6 +55,9 @@ nav input[type=text]{border:1px solid var(--line);border-radius:10px;padding:8px
 
 /* ---- scène ---- */
 #zone{position:relative;flex:1;min-height:0;background:#000;overflow:hidden}
+/* app installée sur l'écran d'accueil : iPadOS ajoute un dégradé sous l'heure, on descend le menu en dessous */
+@media (display-mode: standalone){header{padding-top:calc(env(safe-area-inset-top,0px) + 30px)}}
+html.standalone header{padding-top:calc(env(safe-area-inset-top,0px) + 30px)}
 #stage{position:absolute;left:0;top:0;width:100%;height:100%;background:var(--bg);overflow:hidden;touch-action:none}
 #zpop{position:fixed;top:64px;right:12px;z-index:60;background:#fff;color:#111827;border-radius:14px;padding:12px 14px;box-shadow:0 10px 40px rgba(0,0,0,.4);display:none;flex-direction:column;gap:10px;max-width:92vw}
 #zpop.on{display:flex}
@@ -161,6 +164,7 @@ body.min #restore{display:flex}
 
 <script>
 'use strict';
+if(navigator.standalone)document.documentElement.classList.add('standalone');
 /* =========================================================
    Utilitaires
    ========================================================= */
