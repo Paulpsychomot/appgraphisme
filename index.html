@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fbfaf7">
 <meta name="apple-mobile-web-app-title" content="Atelier">
 <title>Atelier visuo-graphique</title>
 <style>
@@ -19,7 +20,7 @@ button{font:inherit;cursor:pointer;color:inherit}
 input[type=text]{-webkit-user-select:text;user-select:text}
 
 /* ---- barre du haut ---- */
-header{background:var(--paper);color:var(--ink);display:flex;align-items:center;gap:10px;padding:8px 14px;padding-top:max(8px,env(safe-area-inset-top));flex-wrap:wrap;border-bottom:1px solid var(--line)}
+header{background:var(--paper);color:var(--ink);display:flex;align-items:center;gap:10px;padding:8px 14px;padding-top:calc(env(safe-area-inset-top,0px) + 8px);flex-wrap:wrap;border-bottom:1px solid var(--line)}
 header .logo{font-weight:600;font-size:17px;letter-spacing:.2px;margin-right:8px;white-space:nowrap;display:flex;align-items:center;gap:8px}
 .logo .mk{width:12px;height:12px;border-radius:50%;background:var(--dom);transition:background .2s}
 .tabs{display:flex;gap:4px;flex-wrap:wrap}
